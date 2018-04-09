@@ -110,12 +110,12 @@ def preprocess():
 #     #Lemmatization using WordNet Lemmatizer Algorithm
 #     data = [(' '.join(lem.lemmatize(token) for token in word_tokenize(element))) for element in data]
 #==============================================================================
+    #Make Data into N-grams
+    data = [word_grams(element, 3) for element in data]
 #==============================================================================
-#     #Make Data into N-grams
-#     data = [word_grams(element, 3) for element in data]
+#     #Stop word removal
+#     data = [remove_stop_words(element, stop_words) for element in data]
 #==============================================================================
-    #Stop word removal
-    data = [remove_stop_words(element, stop_words) for element in data]
     
     count_vectorizer = CountVectorizer(binary='true')
     data = count_vectorizer.fit_transform(data)
