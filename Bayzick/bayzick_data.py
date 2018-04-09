@@ -16,9 +16,36 @@ from sklearn import cross_validation
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+from nltk.stem import PorterStemmer
+from nltk.stem import WordNetLemmatizer
+from nltk import word_tokenize
+from nltk.util import ngrams
+from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
 import xml.etree.ElementTree as ET
 import itertools
+
+#Function to remove stop words from a string
+def remove_stop_words(element, stop_words):
+    
+    word_tokens = word_tokenize(element)
+    sentence = ""
+    for w in word_tokens:
+        if w not in stop_words:
+            sentence  += w
+    
+    return sentence
+
+#Function to make word grams of a given number i.e. 3
+def word_grams(words, number):
+    
+    tokens = word_tokenize(words)
+    ngram_list = list(ngrams(tokens, number))
+    sentence = ""
+    for word in ngram_list:
+        sentence += str(word)
+    
+    return sentence
 
 #Function to print confusion matrices to assess accuracy of classifiers
 def plot_confusion_matrix(cm,classes,title='Confusion matrix'):
@@ -67,7 +94,29 @@ def load_file():
 
 def preprocess():
     
+    # Initialise Porter Stemmer & Lemmatization
+    ps = PorterStemmer()
+    lem = WordNetLemmatizer()
+    # Create a set to hold stopwords that we don't want from NLTK
+    stop_words = set(stopwords.words('english'))
+    
     data,target = load_file()
+    
+#==============================================================================
+#     #Stemming using Porter Stemming Algorithm
+#     data = [(' '.join(ps.stem(token) for token in word_tokenize(element))) for element in data]
+#==============================================================================
+#==============================================================================
+#     #Lemmatization using WordNet Lemmatizer Algorithm
+#     data = [(' '.join(lem.lemmatize(token) for token in word_tokenize(element))) for element in data]
+#==============================================================================
+#==============================================================================
+#     #Make Data into N-grams
+#     data = [word_grams(element, 3) for element in data]
+#==============================================================================
+    #Stop word removal
+    data = [remove_stop_words(element, stop_words) for element in data]
+    
     count_vectorizer = CountVectorizer(binary='true')
     data = count_vectorizer.fit_transform(data)
     tfidf_data = TfidfTransformer(use_idf=False).fit_transform(data)
