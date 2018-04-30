@@ -4,6 +4,7 @@
 """
 import time
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 import pandas as pd
 import numpy as np
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -16,6 +17,12 @@ from sklearn import cross_validation
 from sklearn.metrics import classification_report
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
+from sklearn import metrics
+from sklearn.model_selection import GridSearchCV
+from sklearn.grid_search import RandomizedSearchCV
+from sklearn import model_selection
+from sklearn.externals import joblib
+from scipy.stats import randint
 from nltk.stem import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 from nltk import word_tokenize
@@ -46,6 +53,20 @@ def word_grams(words, number):
         sentence += str(word)
     
     return sentence
+
+def plot_roc_curve(target_test, predicted, name):
+    fpr, tpr, threshold = metrics.roc_curve(target_test, predicted, pos_label='Yes')
+    roc_auc = metrics.auc(fpr, tpr)
+    plt.figure()
+    plt.title(name + ' Receiver Operating Characteristic Curve')
+    plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
+    plt.legend(loc = 'lower right')
+    plt.plot([0, 1], [0, 1],'r--')
+    plt.xlim([0, 1])
+    plt.ylim([0, 1.05])
+    plt.ylabel('True Positive Rate')
+    plt.xlabel('False Positive Rate')
+    plt.show()
 
 #Function to print confusion matrices to assess accuracy of classifiers
 def plot_confusion_matrix(cm,classes,title='Confusion matrix'):
@@ -139,9 +160,14 @@ def preprocess():
 #     data = [remove_stop_words(element, stop_words) for element in data]
 #==============================================================================
 
-    count_vectorizer = CountVectorizer(binary='true')
-    data = count_vectorizer.fit_transform(data)
-    tfidf_data = TfidfTransformer(use_idf=False).fit_transform(data)
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
+    tfidf_data = tfidf.fit_transform(data)
+    
+#==============================================================================
+#     count_vectorizer = CountVectorizer(binary='true')
+#     data = count_vectorizer.fit_transform(data)
+#     tfidf_data = TfidfTransformer(use_idf=True).fit_transform(data)
+#==============================================================================
 
     return tfidf_data, target
 
@@ -159,12 +185,13 @@ def train_eval(data,target):
     BernoulliNB()]
     
     
-    data_train,data_test,target_train,target_test = cross_validation.train_test_split(data,target,test_size=0.3,random_state=43)
+    data_train,data_test,target_train,target_test = cross_validation.train_test_split(data,target,test_size=0.2,random_state=43)
     for name, clf in zip(names, classifiers):
         if name == "SVC":
             clf = SVC(probability=True, C=1000)
         clf.fit(data_train,target_train)
         predicted = clf.predict(data_test)
+        predicted_probs = clf.predict_proba(data_test)[:,1]
         print("=================================================================")
         print(name,"classifier results")
         print("-----------------------------------------------------------------")
@@ -175,7 +202,116 @@ def train_eval(data,target):
         #Plot the confusion matrix
         graph_name = (name, "Confusion Matrix")
         plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+        #Plot the ROC curve
+        plot_roc_curve(target_test, predicted_probs, name)
+    hyper_parameter_optimization(data_train,data_test,target_train,target_test)
         
+def hyper_parameter_optimization(data_train,data_test,target_train,target_test):
+    
+#==============================================================================
+#     print("=================================================================")
+#     print("Optimizing SVC hyper parameters")
+#     print("-----------------------------------------------------------------")
+#     param_grid = [ {'C':[0.001, 0.01, 0.1, 1, 10, 100, 1000], 'gamma':[0.001, 0.01, 0.1, 1]} ]
+#     clf = GridSearchCV(SVC(probability=True), param_grid, cv=10)
+#     clf.fit(data_train, target_train)
+#     print("Best parameters found:", clf.best_params_)
+#     print("-----------------------------------------------------------------")
+#     joblib.dump(clf.best_estimator_, 'SVC.pkl')
+#     classifier= joblib.load('SVC.pkl')
+#     #Get classifiers predictions for the test set
+#     test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+#     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+#     print(classification_report(target_test,test_predict))
+#     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+#     
+#     #Plot the confusion matrix
+#     cnf_matrix = confusion_matrix(target_test,test_predict)
+#     graph_name = ("SVC Confusion Matrix")
+#     plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+#     #Plot the ROC curve
+#     plot_roc_curve(target_test, predicted_probs, "SVC")
+#     print("Parameters were: ", classifier.get_params())
+#==============================================================================
+    
+#==============================================================================
+#     print("=================================================================")
+#     print("Optimizing Random Forest hyper parameters")
+#     print("-----------------------------------------------------------------")
+#     param_grid = [ {'n_estimators':list(range(10,190,20)), 'criterion':["gini","entropy"], 'max_features':["auto","log2","sqrt"]} ]
+#     clf = GridSearchCV(RandomForestClassifier(), param_grid, cv=10)
+#     clf.fit(data_train, target_train)
+#     print("Best parameters found:", clf.best_params_)
+#     print("-----------------------------------------------------------------")
+#     joblib.dump(clf.best_estimator_, 'random_forest.pkl')
+#     classifier= joblib.load('random_forest.pkl')
+#     #Get classifiers predictions for the test set
+#     test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+#     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+#     print(classification_report(target_test,test_predict))
+#     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+#     
+#     #Plot the confusion matrix
+#     cnf_matrix = confusion_matrix(target_test,test_predict)
+#     graph_name = ("Random Forest Confusion Matrix")
+#     plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+#     #Plot the ROC curve
+#     plot_roc_curve(target_test, predicted_probs, "Random Forest")
+#     print("Parameters were: ", classifier.get_params())
+#==============================================================================
+
+#==============================================================================
+#     print("=================================================================")
+#     print("Optimizing Decision Tree hyper parameters")
+#     print("-----------------------------------------------------------------")
+#     param_dist = {"max_depth": [3, None],
+#               "max_features": randint(1, 9),
+#               "min_samples_leaf": randint(1, 9),
+#               "criterion": ["gini", "entropy"]}
+#     clf = RandomizedSearchCV(DecisionTreeClassifier(), param_dist, cv=5, n_iter=100)
+#     clf.fit(data_train, target_train)
+#     print("Best parameters found:", clf.best_params_)
+#     print("-----------------------------------------------------------------")
+#     joblib.dump(clf.best_estimator_, 'd_tree.pkl')
+#     classifier= joblib.load('d_tree.pkl')
+#     #Get classifiers predictions for the test set
+#     test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+#     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+#     print(classification_report(target_test,test_predict))
+#     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+#     #Plot the confusion matrix
+#     cnf_matrix = confusion_matrix(target_test,test_predict)
+#     graph_name = ("Decision Tree Confusion Matrix")
+#     plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+#     #Plot the ROC curve
+#     plot_roc_curve(target_test, predicted_probs, "Decision Tree")
+#     print("Parameters were: ", classifier.get_params())
+#==============================================================================
+
+    print("=================================================================")
+    print("Optimizing KNN hyper parameters")
+    print("-----------------------------------------------------------------")
+    param_grid = [ {'n_neighbors': list(range(1, 20, 2)), 'p':[1, 2, 3] , 'weights':["uniform","distance"]} ]
+    clf = GridSearchCV(KNeighborsClassifier(metric='euclidean'), param_grid, cv=10)
+    clf.fit(data_train, target_train)
+    print("Best parameters found:", clf.best_params_)
+    print("-----------------------------------------------------------------")
+    joblib.dump(clf.best_estimator_, 'KNN.pkl')
+    classifier= joblib.load('KNN.pkl')
+    #Get classifiers predictions for the test set
+    test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+    predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+    print(classification_report(target_test,test_predict))
+    print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    
+    #Plot the confusion matrix
+    cnf_matrix = confusion_matrix(target_test,test_predict)
+    graph_name = ("KNN Confusion Matrix")
+    plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+    #Plot the ROC curve
+    plot_roc_curve(target_test, predicted_probs, "KNN")
+    print("Parameters were: ", classifier.get_params())
+    
 
 def main():
     
