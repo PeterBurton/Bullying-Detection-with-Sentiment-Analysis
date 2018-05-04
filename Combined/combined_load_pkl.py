@@ -29,6 +29,7 @@ from nltk import word_tokenize
 from nltk.util import ngrams
 from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
+import scikitplot as skplt
 import xml.etree.ElementTree as ET
 import itertools
 
@@ -66,7 +67,6 @@ def plot_roc_curve(target_test, predicted, name):
 #     print("threshold: ", threshold)
 #==============================================================================
     plt.figure()
-    plt.rcParams['axes.facecolor'] = '#F0F8FF'
     plt.title(name + ' Receiver Operating Characteristic Curve')
     plt.plot(fpr, tpr, 'b', label = 'AUC = %0.2f' % roc_auc)
     plt.legend(loc = 'lower right')
@@ -189,7 +189,7 @@ def train_eval(data,target):
     classifiers = [
     KNeighborsClassifier(),
     SVC(),
-    DecisionTreeClassifier(),
+    DecisionTreeClassifier(random_state=107),
     RandomForestClassifier(),
     BernoulliNB()]
     
@@ -207,6 +207,10 @@ def train_eval(data,target):
         #evaluate_model(target_test,predicted)
         print(classification_report(target_test,predicted))
         print("The accuracy score is {:.2%}".format(accuracy_score(target_test,predicted)))
+        #Plot precision recall curve
+        probas = clf.predict_proba(data_test)
+        skplt.metrics.plot_precision_recall_curve(target_test, probas, title=name+" Precision Recall Curve", cmap="hot")
+        plt.show()
         cnf_matrix = confusion_matrix(target_test,predicted)
         #Plot the confusion matrix
 #==============================================================================
@@ -231,6 +235,10 @@ def optimized_hyper_parameters(data_train,data_test,target_train,target_test):
     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
     print(classification_report(target_test,test_predict))
     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    #Plot precision recall curve
+    probas = classifier.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="SVC Precision Recall Curve", cmap="hot")
+    plt.show()
     #Plot the confusion matrix
     cnf_matrix = confusion_matrix(target_test,test_predict)
 #==============================================================================
@@ -253,6 +261,10 @@ def optimized_hyper_parameters(data_train,data_test,target_train,target_test):
     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
     print(classification_report(target_test,test_predict))
     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    #Plot precision recall curve
+    probas = classifier.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="Random Forest Precision Recall Curve", cmap="hot")
+    plt.show()
     #Plot the confusion matrix
     cnf_matrix = confusion_matrix(target_test,test_predict)
 #==============================================================================
@@ -275,6 +287,10 @@ def optimized_hyper_parameters(data_train,data_test,target_train,target_test):
     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
     print(classification_report(target_test,test_predict))
     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    #Plot precision recall curve
+    probas = classifier.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="Decision Tree Precision Recall Curve", cmap="hot")
+    plt.show()
     #Plot the confusion matrix
     cnf_matrix = confusion_matrix(target_test,test_predict)
 #==============================================================================
@@ -297,6 +313,10 @@ def optimized_hyper_parameters(data_train,data_test,target_train,target_test):
     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
     print(classification_report(target_test,test_predict))
     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    #Plot precision recall curve
+    probas = classifier.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="KNN Precision Recall Curve", cmap="hot")
+    plt.show()
     #Plot the confusion matrix
     cnf_matrix = confusion_matrix(target_test,test_predict)
 #==============================================================================
@@ -313,6 +333,8 @@ def optimized_hyper_parameters(data_train,data_test,target_train,target_test):
 
 def main():
     
+    #Set background colour for plots
+    plt.rcParams['axes.facecolor'] = '#F9FFFD'
     #Get a start time for the program
     start_time = time.time()
     tf_idf, target = preprocess()

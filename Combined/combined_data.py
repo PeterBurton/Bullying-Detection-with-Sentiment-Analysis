@@ -29,6 +29,7 @@ from nltk import word_tokenize
 from nltk.util import ngrams
 from nltk.corpus import stopwords
 import matplotlib.pyplot as plt
+import scikitplot as skplt
 import xml.etree.ElementTree as ET
 import itertools
 
@@ -180,7 +181,7 @@ def train_eval(data,target):
     classifiers = [
     KNeighborsClassifier(),
     SVC(),
-    DecisionTreeClassifier(),
+    DecisionTreeClassifier(random_state=107),
     RandomForestClassifier(),
     BernoulliNB()]
     
@@ -198,6 +199,10 @@ def train_eval(data,target):
         #evaluate_model(target_test,predicted)
         print(classification_report(target_test,predicted))
         print("The accuracy score is {:.2%}".format(accuracy_score(target_test,predicted)))
+        #Plot precision recall curve
+        probas = clf.predict_proba(data_test)
+        skplt.metrics.plot_precision_recall_curve(target_test, probas, title=name+" Precision Recall Curve", cmap="hot")
+        plt.show()
         cnf_matrix = confusion_matrix(target_test,predicted)
         #Plot the confusion matrix
         graph_name = (name, "Confusion Matrix")
@@ -208,90 +213,95 @@ def train_eval(data,target):
         
 def hyper_parameter_optimization(data_train,data_test,target_train,target_test):
     
-#==============================================================================
-#     print("=================================================================")
-#     print("Optimizing SVC hyper parameters")
-#     print("-----------------------------------------------------------------")
-#     param_grid = [ {'C':[0.001, 0.01, 0.1, 1, 10, 100, 1000], 'gamma':[0.001, 0.01, 0.1, 1]} ]
-#     clf = GridSearchCV(SVC(probability=True), param_grid, cv=10)
-#     clf.fit(data_train, target_train)
-#     print("Best parameters found:", clf.best_params_)
-#     print("-----------------------------------------------------------------")
-#     joblib.dump(clf.best_estimator_, 'SVC.pkl')
-#     classifier= joblib.load('SVC.pkl')
-#     #Get classifiers predictions for the test set
-#     test_predict  = classifier.fit(data_train,target_train).predict(data_test)
-#     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
-#     print(classification_report(target_test,test_predict))
-#     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
-#     
-#     #Plot the confusion matrix
-#     cnf_matrix = confusion_matrix(target_test,test_predict)
-#     graph_name = ("SVC Confusion Matrix")
-#     plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
-#     #Plot the ROC curve
-#     plot_roc_curve(target_test, predicted_probs, "SVC")
-#     print("Parameters were: ", classifier.get_params())
-#==============================================================================
+    print("=================================================================")
+    print("Optimizing SVC hyper parameters")
+    print("-----------------------------------------------------------------")
+    param_grid = [ {'C':[0.001, 0.01, 0.1, 1, 10, 100, 1000], 'gamma':[0.001, 0.01, 0.1, 1]} ]
+    clf = GridSearchCV(SVC(probability=True), param_grid, cv=10)
+    clf.fit(data_train, target_train)
+    print("Best parameters found:", clf.best_params_)
+    print("-----------------------------------------------------------------")
+    joblib.dump(clf.best_estimator_, 'SVC.pkl')
+    classifier= joblib.load('SVC.pkl')
+    #Get classifiers predictions for the test set
+    test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+    predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+    print(classification_report(target_test,test_predict))
+    print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
     
-#==============================================================================
-#     print("=================================================================")
-#     print("Optimizing Random Forest hyper parameters")
-#     print("-----------------------------------------------------------------")
-#     param_grid = [ {'n_estimators':list(range(10,190,20)), 'criterion':["gini","entropy"], 'max_features':["auto","log2","sqrt"]} ]
-#     clf = GridSearchCV(RandomForestClassifier(), param_grid, cv=10)
-#     clf.fit(data_train, target_train)
-#     print("Best parameters found:", clf.best_params_)
-#     print("-----------------------------------------------------------------")
-#     joblib.dump(clf.best_estimator_, 'random_forest.pkl')
-#     classifier= joblib.load('random_forest.pkl')
-#     #Get classifiers predictions for the test set
-#     test_predict  = classifier.fit(data_train,target_train).predict(data_test)
-#     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
-#     print(classification_report(target_test,test_predict))
-#     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
-#     
-#     #Plot the confusion matrix
-#     cnf_matrix = confusion_matrix(target_test,test_predict)
-#     graph_name = ("Random Forest Confusion Matrix")
-#     plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
-#     #Plot the ROC curve
-#     plot_roc_curve(target_test, predicted_probs, "Random Forest")
-#     print("Parameters were: ", classifier.get_params())
-#==============================================================================
+    #Plot precision recall curve
+    probas = clf.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="SVC Precision Recall Curve", cmap="hot")
+    plt.show()
+    
+    #Plot the confusion matrix
+    cnf_matrix = confusion_matrix(target_test,test_predict)
+    graph_name = ("SVC Confusion Matrix")
+    plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+    #Plot the ROC curve
+    plot_roc_curve(target_test, predicted_probs, "SVC")
+    print("Parameters were: ", classifier.get_params())
+    
+    print("=================================================================")
+    print("Optimizing Random Forest hyper parameters")
+    print("-----------------------------------------------------------------")
+    param_grid = [ {'n_estimators':list(range(10,190,20)), 'criterion':["gini","entropy"], 'max_features':["auto","log2","sqrt"]} ]
+    clf = GridSearchCV(RandomForestClassifier(), param_grid, cv=10)
+    clf.fit(data_train, target_train)
+    print("Best parameters found:", clf.best_params_)
+    print("-----------------------------------------------------------------")
+    joblib.dump(clf.best_estimator_, 'random_forest.pkl')
+    classifier= joblib.load('random_forest.pkl')
+    #Get classifiers predictions for the test set
+    test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+    predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+    print(classification_report(target_test,test_predict))
+    print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    
+    #Plot precision recall curve
+    probas = clf.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="Random Forest Precision Recall Curve", cmap="hot")
+    plt.show()
+    
+    #Plot the confusion matrix
+    cnf_matrix = confusion_matrix(target_test,test_predict)
+    graph_name = ("Random Forest Confusion Matrix")
+    plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+    #Plot the ROC curve
+    plot_roc_curve(target_test, predicted_probs, "Random Forest")
+    print("Parameters were: ", classifier.get_params())
 
-#==============================================================================
-#     print("=================================================================")
-#     print("Optimizing Decision Tree hyper parameters")
-#     print("-----------------------------------------------------------------")
-#     param_dist = {"max_depth": [3, None],
-#               "max_features": randint(1, 9),
-#               "min_samples_leaf": randint(1, 9),
-#               "criterion": ["gini", "entropy"]}
-#     clf = RandomizedSearchCV(DecisionTreeClassifier(), param_dist, cv=5, n_iter=100)
-#     clf.fit(data_train, target_train)
-#     print("Best parameters found:", clf.best_params_)
-#     print("-----------------------------------------------------------------")
-#     joblib.dump(clf.best_estimator_, 'd_tree.pkl')
-#     classifier= joblib.load('d_tree.pkl')
-#     #Get classifiers predictions for the test set
-#     test_predict  = classifier.fit(data_train,target_train).predict(data_test)
-#     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
-#     print(classification_report(target_test,test_predict))
-#     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
-#     #Plot the confusion matrix
-#     cnf_matrix = confusion_matrix(target_test,test_predict)
-#     graph_name = ("Decision Tree Confusion Matrix")
-#     plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
-#     #Plot the ROC curve
-#     plot_roc_curve(target_test, predicted_probs, "Decision Tree")
-#     print("Parameters were: ", classifier.get_params())
-#==============================================================================
+    print("=================================================================")
+    print("Optimizing Decision Tree hyper parameters")
+    print("-----------------------------------------------------------------")
+    param_grid = [{'criterion':["gini","entropy"], 'max_features':["auto","log2","sqrt"]}]
+    clf = GridSearchCV(DecisionTreeClassifier(random_state=107), param_grid, cv=10)
+    clf.fit(data_train, target_train)
+    print("Best parameters found:", clf.best_params_)
+    print("-----------------------------------------------------------------")
+    joblib.dump(clf.best_estimator_, 'd_tree.pkl')
+    classifier= joblib.load('d_tree.pkl')
+    #Get classifiers predictions for the test set.
+    test_predict  = classifier.fit(data_train,target_train).predict(data_test)
+    predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
+    print(classification_report(target_test,test_predict))
+    print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
+    #Plot precision recall curve
+    probas = clf.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="Decision Tree Precision Recall Curve", cmap="hot")
+    plt.show()
+    #Plot the confusion matrix
+    cnf_matrix = confusion_matrix(target_test,test_predict)
+    graph_name = ("Decision Tree Confusion Matrix")
+    plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
+    #Plot the ROC curve
+    plot_roc_curve(target_test, predicted_probs, "Decision Tree")
+    print("Parameters were: ", classifier.get_params())
 
     print("=================================================================")
     print("Optimizing KNN hyper parameters")
     print("-----------------------------------------------------------------")
-    param_grid = [ {'n_neighbors': list(range(1, 20, 2)), 'p':[1, 2, 3] , 'weights':["uniform","distance"]} ]
+    param_grid = [ {'n_neighbors': list(range(1, 20, 2)), 'p':[1, 2, 3],  'weights':["uniform","distance"]} ]
     clf = GridSearchCV(KNeighborsClassifier(metric='euclidean'), param_grid, cv=10)
     clf.fit(data_train, target_train)
     print("Best parameters found:", clf.best_params_)
@@ -303,7 +313,10 @@ def hyper_parameter_optimization(data_train,data_test,target_train,target_test):
     predicted_probs = classifier.fit(data_train,target_train).predict_proba(data_test)[:,1]
     print(classification_report(target_test,test_predict))
     print("The accuracy score is {:.2%}".format(accuracy_score(target_test,test_predict)))
-    
+    #Plot precision recall curve
+    probas = clf.predict_proba(data_test)
+    skplt.metrics.plot_precision_recall_curve(target_test, probas, title="KNN Precision Recall Curve", cmap="hot")
+    plt.show()
     #Plot the confusion matrix
     cnf_matrix = confusion_matrix(target_test,test_predict)
     graph_name = ("KNN Confusion Matrix")
