@@ -55,6 +55,7 @@ def word_grams(words, number):
     
     return sentence
 
+#Function to plot the ROC curve
 def plot_roc_curve(target_test, predicted, name):
     fpr, tpr, threshold = metrics.roc_curve(target_test, predicted, pos_label='Yes')
     roc_auc = metrics.auc(fpr, tpr)
@@ -102,14 +103,16 @@ def load_file():
     data = []
     target = []
     
+    #read CSV into a dataframe
     consensus = pd.read_csv("../datasets/bayzick_data/human_consensus.csv")
     consensus = consensus[pd.notnull(consensus["Is Cyberbullying Present?"])]
     print(consensus['Is Cyberbullying Present?'].value_counts())
     
+    #use info in consensus to find relevant xml files and pull data from them
     for index, row in consensus.iterrows():
         my_string = ""
         filename = "../datasets/bayzick_data/xml_files/" + str("%.4f" % row["File Name"]) + ".xml"
-        # Open up the xml file with the corresponding filename and 
+        # Open up the xml file with the corresponding filename and add body text to data array
         tree = ET.parse(filename)
         root = tree.getroot()
         
@@ -130,7 +133,10 @@ def preprocess():
     # Create a set to hold stopwords that we don't want from NLTK
     stop_words = set(stopwords.words('english'))
     
+    #Load in the file/files
     data,target = load_file()
+    
+    #Various methods of preprocessing, comment or uncomment to get various combinations
     
 #==============================================================================
 #     #Stemming using Porter Stemming Algorithm
@@ -140,17 +146,21 @@ def preprocess():
 #     #Lemmatization using WordNet Lemmatizer Algorithm
 #     data = [(' '.join(lem.lemmatize(token) for token in word_tokenize(element))) for element in data]
 #==============================================================================
-    #Make Data into N-grams
-    data = [word_grams(element, 3) for element in data]
+#==============================================================================
+#     #Make Data into N-grams
+#     data = [word_grams(element, 3) for element in data]
+#==============================================================================
 #==============================================================================
 #     #Stop word removal
 #     data = [remove_stop_words(element, stop_words) for element in data]
 #==============================================================================
 
-    tfidf = TfidfVectorizer(sublinear_tf=False, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
+    #Turn on TF-IDF
+    tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
     tfidf_data = tfidf.fit_transform(data)
     
 #==============================================================================
+#     #Turn off TF-IDF
 #     count_vectorizer = CountVectorizer(binary='true')
 #     data = count_vectorizer.fit_transform(data)
 #     tfidf_data = TfidfTransformer(use_idf=False).fit_transform(data)
@@ -171,7 +181,7 @@ def train_eval(data,target):
     RandomForestClassifier(),
     BernoulliNB()]
     
-    
+    #Split the data to have separate test data
     data_train,data_test,target_train,target_test = cross_validation.train_test_split(data,target,test_size=0.2,random_state=43)
     for name, clf in zip(names, classifiers):
         if name == "SVC":
@@ -200,6 +210,7 @@ def train_eval(data,target):
         plot_confusion_matrix(cnf_matrix, classes=['not bullying', 'bullying'],title =graph_name)
         #Plot the ROC curve
         plot_roc_curve(target_test, predicted_probs, name)
+        print("Parameters were: ", clf.get_params())
     optimized_hyper_parameters(data_train,data_test,target_train,target_test)
         
 def optimized_hyper_parameters(data_train,data_test,target_train,target_test):
@@ -315,9 +326,10 @@ def main():
     plt.rcParams['axes.facecolor'] = '#F9FFFD'
     #Get a start time for the program
     start_time = time.time()
+    #load and preprocess datasets
     tf_idf, target = preprocess()
-    train_eval(tf_idf, target)
-    
+    #train classifiers on datasets & hyperoptimize
+    train_eval(tf_idf,target)
     
     #Get the time taken in seconds
     print("\n=================================================================")

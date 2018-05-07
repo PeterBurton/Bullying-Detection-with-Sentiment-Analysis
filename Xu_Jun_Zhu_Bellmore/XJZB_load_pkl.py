@@ -55,11 +55,12 @@ def word_grams(words, number):
     
     return sentence
 
+#Function to plot ROC curve
 def plot_roc_curve(target_test, predicted, name):
     fpr, tpr, threshold = metrics.roc_curve(target_test, predicted, pos_label='Yes')
     roc_auc = metrics.auc(fpr, tpr)
+    #This is only used when obtaining raw data for the report, otherwise use the plot
 #==============================================================================
-#     #This is only used when obtaining raw data for the report, otherwise use the plot
 #     print("---------------------------\nROC Curve\n---------------------------")
 #     print("Area under the curve: ", roc_auc)
 #     print("fpr: ", fpr)
@@ -104,7 +105,9 @@ def load_file():
     data = []
     target = []
     
+    #read CSV into a dataframe
     df = pd.read_csv("../datasets/Xu_Jun_Zhu_Bellmore_data/biggest_data.csv")
+    #Check for null values and get counts
     df = df[pd.notnull(df["Answer.ContainCyberbullying"])]
     print(df['Answer.ContainCyberbullying'].value_counts())
     
@@ -116,6 +119,7 @@ def load_file():
     print(yes_count)
     
     no_counter = 0
+    #Down sampling to make sure set is balanced, adding data and target to respective arrays
     for index, row in df.iterrows():
         if row['Answer.ContainCyberbullying'] == 'Yes':
             data.append(row['Input.posttext'])
@@ -137,7 +141,10 @@ def preprocess():
     # Create a set to hold stopwords that we don't want from NLTK
     stop_words = set(stopwords.words('english'))
     
+    # Load in the file
     data,target = load_file()
+    
+    #Various methods of preprocessing, comment or uncomment to get various combinations
     
 #==============================================================================
 #     #Stemming using Porter Stemming Algorithm
@@ -147,17 +154,21 @@ def preprocess():
 #     #Lemmatization using WordNet Lemmatizer Algorithm
 #     data = [(' '.join(lem.lemmatize(token) for token in word_tokenize(element))) for element in data]
 #==============================================================================
-    #Make Data into N-grams
-    data = [word_grams(element, 3) for element in data]
+#==============================================================================
+#     #Make Data into N-grams
+#     data = [word_grams(element, 3) for element in data]
+#==============================================================================
 #==============================================================================
 #     #Stop word removal
 #     data = [remove_stop_words(element, stop_words) for element in data]
 #==============================================================================
 
+    #Turn on TF-IDF
     tfidf = TfidfVectorizer(sublinear_tf=True, min_df=5, norm='l2', encoding='latin-1', ngram_range=(1, 2), stop_words='english')
     tfidf_data = tfidf.fit_transform(data)
     
 #==============================================================================
+#     #Turn off TF-IDF
 #     count_vectorizer = CountVectorizer(binary='true')
 #     data = count_vectorizer.fit_transform(data)
 #     tfidf_data = TfidfTransformer(use_idf=False).fit_transform(data)
@@ -178,7 +189,7 @@ def train_eval(data,target):
     RandomForestClassifier(),
     BernoulliNB()]
     
-    
+    #Split the data to have separate test data
     data_train,data_test,target_train,target_test = cross_validation.train_test_split(data,target,test_size=0.2,random_state=43)
     for name, clf in zip(names, classifiers):
         if name == "SVC":
@@ -321,7 +332,9 @@ def main():
     plt.rcParams['axes.facecolor'] = '#F9FFFD'
     #Get a start time for the program
     start_time = time.time()
+    #load and preprocess datasets
     tf_idf, target = preprocess()
+    #train classifiers on datasets & hyperoptimize
     train_eval(tf_idf,target)
     
     #Get the time taken in seconds
